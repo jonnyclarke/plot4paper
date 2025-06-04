@@ -17,7 +17,10 @@ import yaml
 
 logger = logging.getLogger(__name__)
 
-congif_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.yaml")
+congif_path = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "config.yaml"
+)
 with open(congif_path, "r") as stream:
     config = yaml.load(stream, Loader=yaml.FullLoader)
 
@@ -76,16 +79,23 @@ class qualfig(object):
         elif n_columns == 2:
             plot_width = plot_config["texlinewidth"]
         else:
-            raise ValueError(f"Number of columns must be 1 or 2, not {n_columns}")
+            raise ValueError(
+                f"Number of columns must be 1 or 2, not {n_columns}"
+            )
 
         self.plot_width = plot_width * width_fraction
 
         max_permitted_height = 0.8 * plot_config["texheight"]
 
-        self.plot_height = min(max_permitted_height, self.plot_width * height_fraction)
+        self.plot_height = min(
+            max_permitted_height,
+            self.plot_width * height_fraction
+        )
 
         if self.plot_height == max_permitted_height:
-            logger.warning("Plot will exceed max page height. Curtailed to fit page.")
+            logger.warning(
+                "Plot will exceed max page height. Curtailed to fit page."
+            )
 
         logger.debug(
             "Figure size (inches): "
@@ -254,7 +264,9 @@ class qualfig(object):
         bbox = [float(a) for a in r[-4:]]
         logger.debug(bbox)
         pdf_crop_tuple = (name, fname, 0, bbox[1], self.plot_width, bbox[3])
-        os.system('pdfcrop %s %s --bbox " %.6f %.6f %.6f %.6f " ' % pdf_crop_tuple)
+        os.system(
+            'pdfcrop %s %s --bbox " %.6f %.6f %.6f %.6f " ' % pdf_crop_tuple
+        )
         command = "rm %s" % (name)
         os.system(command)
 
