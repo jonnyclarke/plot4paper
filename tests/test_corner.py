@@ -1,0 +1,1 @@
+from plot4paper.corner import CornerPlot

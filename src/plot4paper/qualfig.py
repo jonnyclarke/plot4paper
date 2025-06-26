@@ -2,38 +2,30 @@
 Python class to automate the generation of beautiful plots at
 academic publication standard.
 """
-
+from plot4paper import load_latex_config
 import logging
 import numpy as np
-from typing import Optional, Set
+from typing import Optional
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from cycler import cycler
 
 import os
-
 import subprocess as comsub
-import yaml
 
 logger = logging.getLogger(__name__)
-
-congif_path = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "config.yaml"
-)
-with open(congif_path, "r") as stream:
-    config = yaml.load(stream, Loader=yaml.FullLoader)
-
-SET_PERMITTED_KEYS: Set[str] = list(config.keys())
 
 # Compute the Golden Ratio for nicely proportioned plots
 GOLDEN_RATIO_FRACTION: float = 2.0 / (1.0 + np.sqrt(5.0))
 
 # define the conversion from inch to pt length measurements
+# that is used in latex
 INCHES_TO_POINTS_CONVERSION: float = 72.27
 
+latex_config = load_latex_config()
 
-class qualfig(object):
+
+class QualityFigure(object):
     """Class to automate basic formatting of plots to ensure consistency."""
 
     def __init__(
@@ -58,38 +50,41 @@ class qualfig(object):
                 The fractional height of the plot relative to the width.
                 NOTE: default = 1.618 (The Golden Ratio)
 
-            wf (Optional[float]):
+            width_fraction (Optional[float]):
                 The fractional width of the plot relative to full page/column
                 width.
                 NOTE: default = 1.000
         """
 
-        if key.upper() not in SET_PERMITTED_KEYS:
+        if key.upper() not in set(latex_config.keys()):
             raise KeyError(
                 f"Selected key '{key}' is not understood. "
-                f"Available keys are: {SET_PERMITTED_KEYS}"
+                f"Available keys are: {set(latex_config.keys())}"
             )
 
-        plot_config = config[key.upper()]
+        _conf = latex_config[key.upper()]
 
-        self.save_suffix = f"{plot_config['savesuf']}.pdf"
+        self._save_suffix = f"{_conf['savesuf']}.pdf"
 
         if n_columns == 1:
-            plot_width = plot_config["texcolumnwidth"]
+            plot_width = _conf["texcolumnwidth"]
+
         elif n_columns == 2:
-            plot_width = plot_config["texlinewidth"]
+            plot_width = _conf["texlinewidth"]
+
         else:
             raise ValueError(
                 f"Number of columns must be 1 or 2, not {n_columns}"
             )
 
-        self.plot_width = plot_width * width_fraction
+        self._plot_width = plot_width * width_fraction
 
-        max_permitted_height = 0.8 * plot_config["texheight"]
+        # we trim the maximum permitted height to add space for a caption
+        max_permitted_height = 0.8 * _conf["texheight"]
 
         self.plot_height = min(
             max_permitted_height,
-            self.plot_width * height_fraction
+            self._plot_width * height_fraction
         )
 
         if self.plot_height == max_permitted_height:
@@ -99,7 +94,7 @@ class qualfig(object):
 
         logger.debug(
             "Figure size (inches): "
-            f"{self.plot_width / INCHES_TO_POINTS_CONVERSION} X "
+            f"{self._plot_width / INCHES_TO_POINTS_CONVERSION} X "
             f"{self.plot_height / INCHES_TO_POINTS_CONVERSION}"
         )
 
@@ -110,7 +105,7 @@ class qualfig(object):
         rcParams["figure.subplot.right"] = 0.84 if n_columns == 1 else 0.92
 
         rcParams["figure.figsize"] = (
-            self.plot_width / INCHES_TO_POINTS_CONVERSION,
+            self._plot_width / INCHES_TO_POINTS_CONVERSION,
             self.plot_height / INCHES_TO_POINTS_CONVERSION,
         )
 
@@ -152,7 +147,10 @@ class qualfig(object):
 
         rcParams["font.family"] = "sans-serif"  # default
         rcParams["text.usetex"] = True
-        plt.rc("text.latex", preamble=r"\usepackage{underscore}")
+        plt.rc(
+            "text.latex",
+            preamble=r"\usepackage{underscore}"
+        )
 
         rcParams["contour.negative_linestyle"] = "solid"
 
@@ -179,6 +177,7 @@ class qualfig(object):
             axis (plt.Axes):
                 Axis that should have all borders removed.
         """
+
         for edge in ["top", "bottom", "left", "right"]:
             axis.spines[edge].set_visible(False)
 
@@ -263,7 +262,7 @@ class qualfig(object):
         r = comsub.getoutput(command).split()
         bbox = [float(a) for a in r[-4:]]
         logger.debug(bbox)
-        pdf_crop_tuple = (name, fname, 0, bbox[1], self.plot_width, bbox[3])
+        pdf_crop_tuple = (name, fname, 0, bbox[1], self._plot_width, bbox[3])
         os.system(
             'pdfcrop %s %s --bbox " %.6f %.6f %.6f %.6f " ' % pdf_crop_tuple
         )
@@ -295,7 +294,7 @@ class qualfig(object):
             fname = fname[:-4]
 
         # now construct the save name we will use...
-        savename = f"{fname}{self.save_suffix}"
+        savename = f"{fname}{self._save_suffix}"
 
         # initially crop the figure
         self._crop_figure(fname=savename, dots_per_inch=dots_per_inch)

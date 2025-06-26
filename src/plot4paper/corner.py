@@ -2,25 +2,20 @@
 """
 Code, inspired by corner.py, to generate pretty corner plots to order
 """
-
+from typing import Union, Tuple
 import numpy as np
-import sys
-from tqdm import tqdm_notebook
 from scipy.special import erf
 from scipy.stats import gaussian_kde
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-from matplotlib.colors import Normalize
 
 from matplotlib.ticker import ScalarFormatter
 
 y_formatter = ScalarFormatter(useOffset=False)
 
-
-
-_1sigma = erf( 1. / np.sqrt(2.) )
-_2sigma = erf( 2. / np.sqrt(2.) )
-_3sigma = erf( 3. / np.sqrt(2.) )
+_1sigma = erf(1. / np.sqrt(2.))
+_2sigma = erf(2. / np.sqrt(2.))
+_3sigma = erf(3. / np.sqrt(2.))
 
 _1sigma_2d = 1. - np.exp(-0.5 * (1/1)**2.)
 _2sigma_2d = 1. - np.exp(-0.5 * (2/1)**2.)
@@ -32,50 +27,82 @@ _1sigma_low = beyond_sigma/2.
 _1sigma_hig = _1sigma_low + _1sigma
 
 
-def kde_smoothing(x,range_x, nGridPoints) :
+def kde_smoothing(x, range_x, nGridPoints):
 
     """ use KDE smoothing to smear out any infidelities... """
-    grid = np.linspace(range_x[0],range_x[1],nGridPoints)
+    grid = np.linspace(range_x[0], range_x[1], nGridPoints)
 
-    kde = gaussian_kde( x )
+    kde = gaussian_kde(x)
 
-    return grid , kde(grid)
+    return grid, kde(grid)
 
-def kde_smoothing_2d(x,y,range_x,range_y, nGridPoints) :
+
+def kde_smoothing_2d(x, y, range_x, range_y, nGridPoints):
 
     """ use KDE smoothing to smear out any infidelities... """
-    gx,gy = np.meshgrid( np.linspace(range_x[0],range_x[1],nGridPoints) , np.linspace(range_y[0],range_y[1],nGridPoints) )
-    kde = gaussian_kde(np.stack((x,y)))
+    gx, gy = np.meshgrid(
+        np.linspace(range_x[0], range_x[1], nGridPoints),
+        np.linspace(range_y[0], range_y[1], nGridPoints)
+    )
+    kde = gaussian_kde(np.stack((x, y)))
     gx = np.flipud(gx)
     gy = np.flipud(gy)
 
-    return gx,gy , kde( np.stack( (gx.ravel(),gy.ravel()) ) ).reshape(gx.shape)
+    return (
+        gx,
+        gy,
+        kde(np.stack((gx.ravel(), gy.ravel()))).reshape(gx.shape)
+    )
 
 
-class gorgeous_corner :
+class CornerPlot:
 
-    def __init__( self, grid_shape,\
-                labelpad=0.4) :
-
+    def __init__(
+        self,
+        grid_shape: Union[int, Tuple[int, int]],
+        labelpad=0.4
+    ) -> None:
         """
-        Function to generate gorgeous corner plots.
+        Brief one-line summary of the function.
 
-        INPUT:
-        grid_shape
-            - probably an integer (n,n) shape
+        More detailed explanation of the function's behavior (optional).
 
+        Args:
+            arg1 (int): Description of arg1.
+            arg2 (str): Description of arg2.
+
+        Returns:
+            bool: Description of the return value.
+
+        Raises:
+            ValueError: Description of when ValueError is raised
+            (if applicable).
         """
 
-
-
-        if isinstance( grid_shape , int ) :
+        if isinstance(grid_shape, int):
             self.__nrows = grid_shape
             self.__ncols = grid_shape
-        elif isinstance( grid_shape , tuple ) :
-            (self.__nrows,self.__ncols) = grid_shape
-        else :
-            raise ValueError("grid_shape parameter MUST be an 'int' (--> [n,n] ) or a 'tuple' (nrow,ncol)...")
 
+        elif isinstance(grid_shape, tuple):
+
+            if len(grid_shape) != 2:
+                raise ValueError("Grid shape tuple must be of length 2")
+
+            for val in grid_shape:
+                if not isinstance(val, int):
+                    raise ValueError(
+                        f"Grid shapes must be of type {type(int)}."
+                        f" Input value {val} is of type {type(val)}"
+                    )
+
+            (self.__nrows, self.__ncols) = grid_shape
+
+        else:
+            raise ValueError(
+                "Parameter 'grid_shape' must "
+                "be of type 'int' (n --> [n, n]) "
+                "or of type 'tuple' ((nrow, ncol) --> [nrow, ncol])"
+            )
 
         self.__lblpad = labelpad
 
@@ -84,82 +111,100 @@ class gorgeous_corner :
         """
         self.__fig = plt.figure(1)
 
-        self.__gs = gridspec.GridSpec(self.__nrows,self.__ncols)
-        # 3 rows, 4 columns, each with the required size ratios.
-        self.__gs.update(wspace=0.05,hspace=0.05)
-        # First, the scatter plot
-        # Use the gridspec magic to place it
+        self.__gs = gridspec.GridSpec(self.__nrows, self.__ncols)
+        self.__gs.update(wspace=0.05, hspace=0.05)
         self.__ax = {}
 
-        self.__LL_CONSTRUCTED=False
-        self.__UR_CONSTRUCTED=False
+        self.__LL_CONSTRUCTED = False
+        self.__UR_CONSTRUCTED = False
 
     @property
-    def AXES(self) :
+    def AXES(self):
         return self.__ax
 
-    def __get_nSF( self , val0 ) :
+    def __get_nSF(self, val0) -> int:
         val1 = abs(val0)
-        if val1 < 10 :
+        if val1 < 10:
             return 1
-        else :
+        else:
             logV = np.log10(val1)
-            nSF = np.floor(logV) + 1.0
+            nSF = np.floor(logV) + 1
             return int(nSF)
 
-    def __default_range( self, x) :
+    def __default_range(self, x):
+
         amin = np.amin(x)
         amax = np.amax(x)
         delta = np.ptp(x)
-        return [amin-0.1*delta, amax+0.1*delta]
 
-    def __format2ndp( self , string, ndp ) :
+        return [
+            amin - 0.1 * delta,
+            amax + 0.1 * delta
+        ]
 
-        if ndp==-1 :
+    def __format2ndp(self, string, ndp) -> str:
+
+        if ndp == -1:
             s = r"${:+7.1f}$"
-        else :
+
+        else:
             s = r"${:7."+str(ndp)+"f}$"
-        return s.format( string )
 
+        return s.format(string)
 
-
-    def __histogram( self, ax,\
-                        x,\
-                        range_x,\
-                        ndp,\
-                        gaussian_prior,\
-                        color,\
-                        nbin,\
-                        quartiles,\
-                        title,\
-                        titleOnBottom=False,
-                        smooth=False,\
-                        GP_color="k",\
-                        nSmoothingGrid=100) :
+    def __histogram(
+        self,
+        ax,
+        x,
+        range_x,
+        ndp,
+        gaussian_prior,
+        color,
+        nbin,
+        quartiles,
+        title,
+        titleOnBottom=False,
+        smooth=False,
+        GP_color="k",
+        nSmoothingGrid=100
+    ) -> None:
 
         """
         We are constructing the histogram
         """
 
-        if not smooth :
+        if smooth:
+
+            grid, y_n = kde_smoothing(
+                x=x,
+                range_x=range_x,
+                nGridPoints=nSmoothingGrid
+            )
+
+            ax.plot(grid, y_n, color=color)
+
+            new_y = np.nanmax(y_n) * 1.1
+
+        else:
             # plot the centroid of the histogram to avoid the blocky edges
-            h,e = np.histogram(x,bins=nbin,range=range_x,density=True)
-            c = (e[1:]+e[:-1])/2.
-            ax.plot(c,h,color=color)
+            yhist, edges = np.histogram(
+                a=x,
+                bins=nbin,
+                range=range_x,
+                density=True
+            )
+            centroids = (edges[1:] + edges[:-1]) / 2.0
+            ax.plot(centroids, yhist, color=color)
 
-            new_y = np.nanmax( h ) * 1.1
-        else :
+            new_y = np.nanmax(yhist) * 1.1
 
-            grid, y_n = kde_smoothing(x,range_x, nGridPoints=nSmoothingGrid)
-
-            ax.plot(grid,y_n,color=color)
-
-            new_y = np.nanmax( y_n ) * 1.1
-
-        self.__update_histogram_y_limits(ax,new_y)
+        self.__update_histogram_y_limits(ax, new_y)
 
         # now we locate the median and the quartiles
-        lower,median,upper = np.quantile( np.sort( x ), q=[_1sigma_low,0.5,_1sigma_hig] )
+        lower, median, upper = np.quantile(
+            np.sort(x),
+            q=[_1sigma_low, 0.5, _1sigma_hig]
+        )
 
         nsf_val = self.__get_nSF( median )
         nsf_err = np.maximum( self.__get_nSF( upper-median ) , self.__get_nSF( median-lower ) )
@@ -634,32 +679,36 @@ class gorgeous_corner :
                 if j==i :
                     # we plot the histogram
 
-                    self.__histogram( self.__ax[k],\
-                                        samples[:,i],
-                                        plotrange[i],\
-                                        ndp[i],\
-                                        gaussian_prior[i],\
-                                        color=color,\
-                                        nbin=nbin,\
-                                        quartiles=quartiles,\
-                                        title=title,\
-                                        smooth=smoothHist,\
-                                        titleOnBottom=True,
-                                        GP_color=GP_color,\
-                                        nSmoothingGrid=nSmoothingGrid)
+                    self.__histogram(
+                        self.__ax[k],
+                        samples[:,i],
+                        plotrange[i],
+                        ndp[i],
+                        gaussian_prior[i],
+                        color=color,
+                        nbin=nbin,
+                        quartiles=quartiles,
+                        title=title,
+                        smooth=smoothHist,
+                        titleOnBottom=True,
+                        GP_color=GP_color,
+                        nSmoothingGrid=nSmoothingGrid
+                    )
 
                 else :
                     # we plot the 2d distribution
-                    self.__2d( self.__ax[k],\
-                                        samples[:,j], samples[:,i],\
-                                        plotrange[j], plotrange[i],\
-                                            cmap=cmap,\
-                                            nbin=nbin,\
-                                            yOffset=yOffset,\
-                                            color=color,\
-                                            smooth=smoothMap,\
-                                            nSmoothingGrid=nSmoothingGrid,
-                                            use_sigma_regions_2d=use_sigma_regions_2d)
+                    self.__2d(
+                        self.__ax[k],\
+                        samples[:,j], samples[:,i],\
+                        plotrange[j], plotrange[i],\
+                        cmap=cmap,\
+                        nbin=nbin,\
+                        yOffset=yOffset,\
+                        color=color,\
+                        smooth=smoothMap,\
+                        nSmoothingGrid=nSmoothingGrid,
+                        use_sigma_regions_2d=use_sigma_regions_2d
+                    )
                 #
                 if i == (ntheta-1) :
                     xticks = self.__ax[k].get_xticks()
