@@ -83,6 +83,11 @@ class CornerPlot:
         """
         return self._shape[0] - 1 - j
 
+    def _ll_jj_data(self, j: int) -> int:
+        """Function to map the j index in corner space to the
+        data index of the y-coordinate"""
+        return self._ll_n_theta - 1 - j
+
     def _is_ll_histogram(self, i: int, j: int) -> bool:
         return (i + j + 1) == self._ll_n_theta
 
@@ -228,11 +233,11 @@ class CornerPlot:
                     self.plot_2d_histogram_basic(
                         axis=self._axes[key],
                         x_data_slice=data[:, i],
-                        y_data_slice=data[:, j + 1],
+                        y_data_slice=data[:, self._ll_jj_data(j)],
                         x_boundaries=self._ll_grids["bounds"][i],
-                        y_boundaries=self._ll_grids["bounds"][j + 1],
+                        y_boundaries=self._ll_grids["bounds"][self._ll_jj_data(j)],
                         x_n_bins=self._ll_grids["bins"][i],
-                        y_n_bins=self._ll_grids["bins"][j + 1],
+                        y_n_bins=self._ll_grids["bins"][self._ll_jj_data(j)],
                         apply_smoothing=apply_smoothing,
                         map_colorscheme=map_colorscheme
                     )
@@ -290,18 +295,17 @@ class CornerPlot:
                     ((xx, yy), dv) = self._build_centroid_grid(
                         boundaries=np.vstack((
                             self._ll_grids["bounds"][i],
-                            self._ll_grids["bounds"][j + 1]
+                            self._ll_grids["bounds"][self._ll_jj_data(j)]
                         )),
                         n_bins=np.array([
                             self._ll_grids["bins"][i],
-                            self._ll_grids["bins"][j + 1]
+                            self._ll_grids["bins"][self._ll_jj_data(j)]
                         ]),
                         indexing="ij"
                     )
-
                     zz_2d = np.sum(
                         zz_nd,
-                        axis=tuple(sorted(allaxes-{i, j + 1}))
+                        axis=tuple(sorted(allaxes-{i, self._ll_jj_data(j)}))
                     )
 
                     # normalise
