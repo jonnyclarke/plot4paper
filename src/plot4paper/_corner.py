@@ -34,7 +34,11 @@ def kde_smoothing(x, range_x, nGridPoints):
 
     kde = gaussian_kde(x)
 
-    return grid, kde(grid)
+    dx = grid[1] - grid[0]
+    y = kde(grid) * dx
+    y /= np.sum(y)
+
+    return grid, y
 
 
 def kde_smoothing_2d(x, y, range_x, range_y, nGridPoints):
