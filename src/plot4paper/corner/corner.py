@@ -32,7 +32,11 @@ class CornerPlot:
         if isinstance(shape, int):
             self._shape = (shape, shape)
 
-        elif isinstance(shape, Tuple[int, int]):
+        elif (
+                isinstance(shape, tuple)
+                and len(shape) == 2
+                and all(isinstance(x, int) for x in shape)
+                ):
             self._shape = shape
 
         else:
