@@ -1,4 +1,4 @@
-from typing import Any, Dict, Tuple, Union, List
+from typing import Tuple, Union, List
 
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
@@ -10,17 +10,14 @@ import numpy as np
 
 from plot4paper.corner.mvg import MultiVariateGaussianMixture
 
-# TODO: evaluate whether a config is really needed here
-DEFAULT_WSPACE: float = 0.05
-DEFAULT_HSPACE: float = 0.05
-
 
 class CornerPlot:
 
     def __init__(
             self,
             shape: Union[int, Tuple[int, int]],
-            config: Dict[Any, Any] = None,
+            axis_wspace: float = 0.05,
+            axis_hspace: float = 0.05
             ) -> None:
         """
 
@@ -42,15 +39,13 @@ class CornerPlot:
         else:
             raise ValueError("shape must be int or (int, int)")
 
-        self._config = config or {}
-
         # set up figure
         self._fig = plt.figure(1)
         self._gs = gridspec.GridSpec(
             nrows=self._shape[0],
             ncols=self._shape[1],
-            wspace=self._config.get("wspace", DEFAULT_WSPACE),
-            hspace=self._config.get("hspace", DEFAULT_HSPACE)
+            wspace=axis_wspace,
+            hspace=axis_hspace
         )
         self._axes = {}
 
