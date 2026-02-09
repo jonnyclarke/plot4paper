@@ -12,8 +12,6 @@ from cycler import cycler
 
 from matplotlib.transforms import Bbox
 
-import os
-import subprocess as comsub
 
 logger = logging.getLogger(__name__)
 
@@ -279,67 +277,3 @@ class QualityFigure(object):
             bbox_inches=adjusted_bbox,
             dpi=dpi
         )
-
-    # def _crop_figure(self, fname: str, dots_per_inch: int) -> None:
-    #     """
-    #     Function to crop figures correctly to the correct size by removing
-    #     whitespace.
-    #     This process operates in PdF format but can then be converted to other
-    #     file types.
-
-    #     Args:
-    #         fname (str):
-    #             Name of the file to be saved.
-
-    #         dots_per_inch (int):
-    #             Resolution of the figure.
-    #     """
-    #     name = "dum.pdf"
-    #     plt.savefig(name, dpi=dots_per_inch)
-    #     command = "gs -sDEVICE=bbox -dNOPAUSE -dBATCH %s" % name
-    #     r = comsub.getoutput(command).split()
-    #     bbox = [float(a) for a in r[-4:]]
-    #     logger.debug(bbox)
-    #     pdf_crop_tuple = (name, fname, 0, bbox[1], self._plot_width, bbox[3])
-    #     os.system(
-    #         'pdfcrop %s %s --bbox " %.6f %.6f %.6f %.6f " ' % pdf_crop_tuple
-    #     )
-    #     command = "rm %s" % (name)
-    #     os.system(command)
-
-    # def save(
-    #     self, fname: str, extension: str = "pdf", dots_per_inch: int = 1000
-    # ) -> None:
-    #     """Save file maintaining the quality figure formatting.
-
-    #     Args:
-    #         fname (str):
-    #             File name to save figure under.
-
-    #         extension (str):
-    #             File type to save as.
-    #             NOTE: default = pdf
-
-    #         dots_per_inch (int):
-    #             Figure resolution.
-    #             More dots will allow better zoom features but will make file
-    #             larger.
-    #             NOTE: default = 1000
-    #     """
-
-    #     # strip the .pdf extension if it is there
-    #     if fname.endswith(".pdf"):
-    #         fname = fname[:-4]
-
-    #     # now construct the save name we will use...
-    #     savename = f"{fname}{self._save_suffix}"
-
-    #     # initially crop the figure
-    #     self._crop_figure(fname=savename, dots_per_inch=dots_per_inch)
-
-    #     if extension == "eps":
-    #         # now convert to eps
-    #         command = "pdftops -eps %s" % (savename)
-    #         os.system(command)
-    #         command = "rm %s" % (savename)
-    #         os.system(command)

@@ -1,6 +1,7 @@
 
 import numpy as np
 from scipy.stats import multivariate_normal
+from typing import Set
 
 
 class MultiVariateGaussianMixture:
@@ -17,32 +18,25 @@ class MultiVariateGaussianMixture:
         self.mu = mu
         self.cov = cov
 
-        self.kwargs = kwargs
+        self._metadata = kwargs  # store any extra keyword arguments
 
-    def descale(
-            self,
-            lst_mu: np.array,
-            lst_std: np.array
-            ):
+    def set_metadata(self, **kwargs):
+        self._metadata.update(kwargs)
 
-        std_diag = np.diag(lst_std)
+    @property
+    def metadata(self):
+        return self._metadata
 
-        return MultiVariateGaussianMixture(
-            alpha=self.alpha,
-            mu=(self.mu * lst_std) + lst_mu,
-            cov=(
-                std_diag @ self.cov @ std_diag
-            ),
-            **self.kwargs
-        )
+    def iterate_gaussians(self):
+        return zip(self.alpha, self.mu, self.cov)
 
     def compute_onto_grid(
             self,
             pxyz: np.ndarray
-            ) -> np.ndarray:
+            ) -> np.array:
 
         z = np.zeros(len(pxyz))
-        for (a, m, c) in zip(self.alpha, self.mu, self.cov):
+        for (a, m, c) in self.iterate_gaussians():
             z += a * multivariate_normal.pdf(
                 pxyz,
                 mean=m,
@@ -50,6 +44,25 @@ class MultiVariateGaussianMixture:
             )
 
         return z
+
+    def extract_subcomponents(
+            self,
+            set_idx: Set[int]
+            ):
+        _a = []
+        _m = []
+        _c = []
+        for i, (a, m, c) in enumerate(self.iterate_gaussians()):
+            if i in set_idx:
+                _a.append(a)
+                _m.append(m)
+                _c.append(c)
+
+        return MultiVariateGaussianMixture(
+            alpha=np.array(_a),
+            mu=np.array(_m),
+            cov=np.array(_c)
+        )
 
     def total_weight(self) -> float:
         return np.sum(self.alpha)

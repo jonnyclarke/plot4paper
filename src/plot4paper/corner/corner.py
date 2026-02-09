@@ -234,7 +234,9 @@ class CornerPlot:
                         x_data_slice=data[:, i],
                         y_data_slice=data[:, self._ll_jj_data(j)],
                         x_boundaries=self._ll_grids["bounds"][i],
-                        y_boundaries=self._ll_grids["bounds"][self._ll_jj_data(j)],
+                        y_boundaries=self._ll_grids["bounds"][
+                            self._ll_jj_data(j)
+                        ],
                         x_n_bins=self._ll_grids["bins"][i],
                         y_n_bins=self._ll_grids["bins"][self._ll_jj_data(j)],
                         apply_smoothing=apply_smoothing,
