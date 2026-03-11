@@ -393,14 +393,14 @@ class CornerPlot:
             axis.plot(x_cent, y, color=hist_color)
 
         else:
-            y, _ = np.histogram(
+            y, x_edges = np.histogram(
                 a=data_slice,
                 bins=n_bins,
                 range=x_boundaries,
                 density=True
             )
 
-            axis.plot(x_cent, y, color=hist_color)
+            axis.stairs(y, x_edges, color=hist_color)
 
         # we update the maximum of the axis to ensure all distributions
         # are in full view
