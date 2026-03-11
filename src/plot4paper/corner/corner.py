@@ -134,7 +134,7 @@ class CornerPlot:
 
                 if i > 0:
                     # we are not on leftmost column so don't want y-tick labels
-                    self._axes[key].tick_params(axis="y", labelbottom=False)
+                    self._axes[key].tick_params(axis="y", labelleft=False)
 
                 if self._is_ll_histogram(i, j):
                     self._axes[key].set_yticks([])
@@ -338,7 +338,7 @@ class CornerPlot:
             self._axes[key_i0].set_xlabel(label)
 
             if i > 0:
-                key_0j = self.ll_key_formatter(0, i-1)
+                key_0j = self.ll_key_formatter(0, self._ll_jj_data(i))
                 self._axes[key_0j].set_ylabel(label)
 
     def set_lower_left_axis_limits(
@@ -460,7 +460,7 @@ class CornerPlot:
             y_n_bins: int,
             ) -> np.ndarray:
 
-        H, x, y = np.histogram2d(
+        H, _, _ = np.histogram2d(
             x=x_data_slice,
             y=y_data_slice,
             bins=[x_n_bins, y_n_bins],
@@ -471,7 +471,7 @@ class CornerPlot:
         shape = H.shape
         h = H.ravel()
         h[h == 0.] = np.nan  # this is to prevent colormap filling whole axis
-        H = np.reshape(H, shape)
+        H = np.reshape(h, shape)
 
         # we rotate through 90 degrees as this will be plotted with imshow
         return np.rot90(H)

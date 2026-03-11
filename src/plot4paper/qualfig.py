@@ -89,7 +89,10 @@ class QualityFigure(object):
 
         if self.plot_height == max_permitted_height:
             logger.warning(
-                "Plot will exceed max page height. Curtailed to fit page."
+                "Plot will exceed max page height. Curtailed to fit page. "
+                "NOTE: maximum height fraction == "
+                f"{max_permitted_height / self._plot_width}"
+
             )
 
         logger.debug(
@@ -218,8 +221,8 @@ class QualityFigure(object):
                 Fractional width to reserve at the right for white-space.
         """
 
-        if side:
-            if left or right:
+        if side is not None:
+            if left is not None or right is not None:
                 logger.warning(
                     "You have set both 'side' and one of 'left'/'right' "
                     "Using 'side' configuration only"
@@ -230,23 +233,23 @@ class QualityFigure(object):
 
         else:
 
-            if left:
+            if left is not None:
                 rcParams["figure.subplot.left"] = left
 
-            if right:
+            if right is not None:
                 rcParams["figure.subplot.right"] = 1 - right
 
-        if bottom:
+        if bottom is not None:
             rcParams["figure.subplot.bottom"] = bottom
 
-        if top:
+        if top is not None:
             rcParams["figure.subplot.top"] = 1 - top
 
     def save(
             self,
             fig,
             figname: str,
-            dpi: int = 1000
+            dpi: int = 100
             ) -> None:
 
         fig.canvas.draw()
