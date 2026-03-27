@@ -1,0 +1,35 @@
+name: Python Lint, Format, & Test CI
+
+on:
+  [push, pull_request]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.12"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install uv
+        uv sync --dev
+
+    - name: Run Black (check)
+      run: uv run black --check .
+
+    - name: Run Flake8
+      run: uv run flake8 .
+
+    - name: Run Ruff
+      run: uv run ruff check .
+
+    - name: Run Pytest with Coverage
+      run: uv run pytest

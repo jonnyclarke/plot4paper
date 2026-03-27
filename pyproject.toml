@@ -24,12 +24,26 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "plot4paper",
+    "black>=26.3.1",
+    "flake8>=7.3.0",
     "pytest>=9.0.2",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.15.8",
 ]
 
 [tool.uv.sources]
 plot4paper = { workspace = true }
 
+[tool.black]
+line-length = 88
+target-version = ["py312"]
 
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+fix = true
 
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --cov=src --cov-report=term-missing --cov-fail-under=31"
+testpaths = ["tests"]
