@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project]
+name = "plot4paper"
+version = "0.1.0"
+description = "Short description"
+readme = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "matplotlib>=3.10.8",
+    "numpy>=2.4.2",
+    "pyyaml>=6.0.3",
+    "scipy>=1.17.0",
+]
+
+[dependency-groups]
+dev = [
+    "plot4paper",
+    "pytest>=9.0.2",
+]
+
+[tool.uv.sources]
+plot4paper = { workspace = true }
+
+
+

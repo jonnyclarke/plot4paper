@@ -2,38 +2,30 @@
 Python class to automate the generation of beautiful plots at
 academic publication standard.
 """
-
+from plot4paper import load_latex_config
 import logging
 import numpy as np
-from typing import Optional, Set
+from typing import Optional
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 from cycler import cycler
 
-import os
+from matplotlib.transforms import Bbox
 
-import subprocess as comsub
-import yaml
 
 logger = logging.getLogger(__name__)
-
-congif_path = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "config.yaml"
-)
-with open(congif_path, "r") as stream:
-    config = yaml.load(stream, Loader=yaml.FullLoader)
-
-SET_PERMITTED_KEYS: Set[str] = list(config.keys())
 
 # Compute the Golden Ratio for nicely proportioned plots
 GOLDEN_RATIO_FRACTION: float = 2.0 / (1.0 + np.sqrt(5.0))
 
 # define the conversion from inch to pt length measurements
+# that is used in latex
 INCHES_TO_POINTS_CONVERSION: float = 72.27
 
+latex_config = load_latex_config()
 
-class qualfig(object):
+
+class QualityFigure(object):
     """Class to automate basic formatting of plots to ensure consistency."""
 
     def __init__(
@@ -58,48 +50,54 @@ class qualfig(object):
                 The fractional height of the plot relative to the width.
                 NOTE: default = 1.618 (The Golden Ratio)
 
-            wf (Optional[float]):
+            width_fraction (Optional[float]):
                 The fractional width of the plot relative to full page/column
                 width.
                 NOTE: default = 1.000
         """
 
-        if key.upper() not in SET_PERMITTED_KEYS:
+        if key.upper() not in set(latex_config.keys()):
             raise KeyError(
                 f"Selected key '{key}' is not understood. "
-                f"Available keys are: {SET_PERMITTED_KEYS}"
+                f"Available keys are: {set(latex_config.keys())}"
             )
 
-        plot_config = config[key.upper()]
+        _conf = latex_config[key.upper()]
 
-        self.save_suffix = f"{plot_config['savesuf']}.pdf"
+        self._save_suffix = f"{_conf['savesuf']}.pdf"
 
         if n_columns == 1:
-            plot_width = plot_config["texcolumnwidth"]
+            plot_width = _conf["texcolumnwidth"]
+
         elif n_columns == 2:
-            plot_width = plot_config["texlinewidth"]
+            plot_width = _conf["texlinewidth"]
+
         else:
             raise ValueError(
                 f"Number of columns must be 1 or 2, not {n_columns}"
             )
 
-        self.plot_width = plot_width * width_fraction
+        self._plot_width = plot_width * width_fraction
 
-        max_permitted_height = 0.8 * plot_config["texheight"]
+        # we trim the maximum permitted height to add space for a caption
+        max_permitted_height = 0.8 * _conf["texheight"]
 
         self.plot_height = min(
             max_permitted_height,
-            self.plot_width * height_fraction
+            self._plot_width * height_fraction
         )
 
         if self.plot_height == max_permitted_height:
             logger.warning(
-                "Plot will exceed max page height. Curtailed to fit page."
+                "Plot will exceed max page height. Curtailed to fit page. "
+                "NOTE: maximum height fraction == "
+                f"{max_permitted_height / self._plot_width}"
+
             )
 
         logger.debug(
             "Figure size (inches): "
-            f"{self.plot_width / INCHES_TO_POINTS_CONVERSION} X "
+            f"{self._plot_width / INCHES_TO_POINTS_CONVERSION} X "
             f"{self.plot_height / INCHES_TO_POINTS_CONVERSION}"
         )
 
@@ -110,7 +108,7 @@ class qualfig(object):
         rcParams["figure.subplot.right"] = 0.84 if n_columns == 1 else 0.92
 
         rcParams["figure.figsize"] = (
-            self.plot_width / INCHES_TO_POINTS_CONVERSION,
+            self._plot_width / INCHES_TO_POINTS_CONVERSION,
             self.plot_height / INCHES_TO_POINTS_CONVERSION,
         )
 
@@ -152,7 +150,10 @@ class qualfig(object):
 
         rcParams["font.family"] = "sans-serif"  # default
         rcParams["text.usetex"] = True
-        plt.rc("text.latex", preamble=r"\usepackage{underscore}")
+        plt.rc(
+            "text.latex",
+            preamble=r"\usepackage{underscore}"
+        )
 
         rcParams["contour.negative_linestyle"] = "solid"
 
@@ -179,6 +180,7 @@ class qualfig(object):
             axis (plt.Axes):
                 Axis that should have all borders removed.
         """
+
         for edge in ["top", "bottom", "left", "right"]:
             axis.spines[edge].set_visible(False)
 
@@ -219,8 +221,8 @@ class qualfig(object):
                 Fractional width to reserve at the right for white-space.
         """
 
-        if side:
-            if left or right:
+        if side is not None:
+            if left is not None or right is not None:
                 logger.warning(
                     "You have set both 'side' and one of 'left'/'right' "
                     "Using 'side' configuration only"
@@ -231,78 +233,50 @@ class qualfig(object):
 
         else:
 
-            if left:
+            if left is not None:
                 rcParams["figure.subplot.left"] = left
 
-            if right:
+            if right is not None:
                 rcParams["figure.subplot.right"] = 1 - right
 
-        if bottom:
+        if bottom is not None:
             rcParams["figure.subplot.bottom"] = bottom
 
-        if top:
+        if top is not None:
             rcParams["figure.subplot.top"] = 1 - top
 
-    def _crop_figure(self, fname: str, dots_per_inch: int) -> None:
-        """
-        Function to crop figures correctly to the correct size by removing
-        whitespace.
-        This process operates in PdF format but can then be converted to other
-        file types.
-
-        Args:
-            fname (str):
-                Name of the file to be saved.
-
-            dots_per_inch (int):
-                Resolution of the figure.
-        """
-        name = "dum.pdf"
-        plt.savefig(name, dpi=dots_per_inch)
-        command = "gs -sDEVICE=bbox -dNOPAUSE -dBATCH %s" % name
-        r = comsub.getoutput(command).split()
-        bbox = [float(a) for a in r[-4:]]
-        logger.debug(bbox)
-        pdf_crop_tuple = (name, fname, 0, bbox[1], self.plot_width, bbox[3])
-        os.system(
-            'pdfcrop %s %s --bbox " %.6f %.6f %.6f %.6f " ' % pdf_crop_tuple
-        )
-        command = "rm %s" % (name)
-        os.system(command)
-
     def save(
-        self, fname: str, extension: str = "pdf", dots_per_inch: int = 1000
-    ) -> None:
-        """Save file maintaining the quality figure formatting.
+            self,
+            fig,
+            figname: str,
+            dpi: int = 100
+            ) -> None:
 
-        Args:
-            fname (str):
-                File name to save figure under.
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
 
-            extension (str):
-                File type to save as.
-                NOTE: default = pdf
+        # Current bbox in inches
+        current_bbox = (
+            fig
+            .get_window_extent(renderer)
+            .transformed(fig.dpi_scale_trans.inverted())
+        )
 
-            dots_per_inch (int):
-                Figure resolution.
-                More dots will allow better zoom features but will make file
-                larger.
-                NOTE: default = 1000
-        """
+        # Tight bbox in pixels
+        tight_bbox_inches = fig.get_tightbbox(renderer)
 
-        # strip the .pdf extension if it is there
-        if fname.endswith(".pdf"):
-            fname = fname[:-4]
+        adjusted_bbox = (
+            Bbox
+            .from_extents(
+                current_bbox.x0,
+                tight_bbox_inches.y0,
+                current_bbox.x1,
+                tight_bbox_inches.y1
+            )
+        )
 
-        # now construct the save name we will use...
-        savename = f"{fname}{self.save_suffix}"
-
-        # initially crop the figure
-        self._crop_figure(fname=savename, dots_per_inch=dots_per_inch)
-
-        if extension == "eps":
-            # now convert to eps
-            command = "pdftops -eps %s" % (savename)
-            os.system(command)
-            command = "rm %s" % (savename)
-            os.system(command)
+        fig.savefig(
+            figname,
+            bbox_inches=adjusted_bbox,
+            dpi=dpi
+        )
