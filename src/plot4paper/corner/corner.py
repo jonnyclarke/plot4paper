@@ -14,11 +14,11 @@ from plot4paper.corner.mvg import MultiVariateGaussianMixture
 class CornerPlot:
 
     def __init__(
-            self,
-            shape: Union[int, Tuple[int, int]],
-            axis_wspace: float = 0.05,
-            axis_hspace: float = 0.05
-            ) -> None:
+        self,
+        shape: Union[int, Tuple[int, int]],
+        axis_wspace: float = 0.05,
+        axis_hspace: float = 0.05,
+    ) -> None:
         """
 
         Args:
@@ -30,10 +30,10 @@ class CornerPlot:
             self._shape = (shape, shape)
 
         elif (
-                isinstance(shape, tuple)
-                and len(shape) == 2
-                and all(isinstance(x, int) for x in shape)
-                ):
+            isinstance(shape, tuple)
+            and len(shape) == 2
+            and all(isinstance(x, int) for x in shape)
+        ):
             self._shape = shape
 
         else:
@@ -45,7 +45,7 @@ class CornerPlot:
             nrows=self._shape[0],
             ncols=self._shape[1],
             wspace=axis_wspace,
-            hspace=axis_hspace
+            hspace=axis_hspace,
         )
         self._axes = {}
 
@@ -58,11 +58,7 @@ class CornerPlot:
     def get_figure_axes(self):
         return (self._fig, self._axes)
 
-    def generate_top_right_panel(
-            self,
-            dleft: int = 1,
-            ddown: int = 1
-            ) -> plt.axis:
+    def generate_top_right_panel(self, dleft: int = 1, ddown: int = 1) -> plt.axis:
         """"""
         return plt.subplot(self._gs[:ddown, -dleft:])
 
@@ -94,10 +90,7 @@ class CornerPlot:
     def ll_key_formatter(i: int, j: int) -> str:
         return f"ll_{i}_{j}"
 
-    def construct_lower_left_axes(
-            self,
-            n_theta: int
-            ) -> None:
+    def construct_lower_left_axes(self, n_theta: int) -> None:
 
         self._ll_n_theta = n_theta
 
@@ -109,9 +102,7 @@ class CornerPlot:
 
                 key = self.ll_key_formatter(i, j)
 
-                self._axes[key] = plt.subplot(
-                    self._gs[self._ll_jj(j), self._ll_ii(i)]
-                )
+                self._axes[key] = plt.subplot(self._gs[self._ll_jj(j), self._ll_ii(i)])
 
                 # this ensures that the x-axes will always remain in syn
                 if j > 0:
@@ -144,7 +135,7 @@ class CornerPlot:
                         bottom=True,
                         top=True,
                         left=False,
-                        right=False
+                        right=False,
                     )
                 else:
                     self._axes[key].tick_params(
@@ -153,14 +144,12 @@ class CornerPlot:
                         bottom=True,
                         left=True,
                         top=True,
-                        right=True
+                        right=True,
                     )
 
     def configure_lower_left_grids(
-            self,
-            lst_grid_boundaries: np.ndarray,
-            n_bins: Union[int, np.array]
-            ) -> None:
+        self, lst_grid_boundaries: np.ndarray, n_bins: Union[int, np.array]
+    ) -> None:
         """"""
         assert len(lst_grid_boundaries) == self._ll_n_theta
 
@@ -171,28 +160,22 @@ class CornerPlot:
         self._ll_grids["bins"] = n_bins
 
     def configure_lower_left_grids_from_data(
-            self,
-            data: np.ndarray,
-            n_bins: Union[int, np.array]
-            ) -> None:
+        self, data: np.ndarray, n_bins: Union[int, np.array]
+    ) -> None:
         """"""
         assert data.shape[1] == self._ll_n_theta
 
         if isinstance(n_bins, int):
             n_bins = [n_bins for _ in range(self._ll_n_theta)]
 
-        min_max_bounds = np.vstack((
-            np.min(data, axis=0),
-            np.max(data, axis=0)
-        )).T
-        d = np.array([row[1]-row[0] for row in min_max_bounds])
+        min_max_bounds = np.vstack((np.min(data, axis=0), np.max(data, axis=0))).T
+        d = np.array([row[1] - row[0] for row in min_max_bounds])
         d *= 0.1
         min_max_bounds[:, 0] -= d
         min_max_bounds[:, 1] += d
 
         self.configure_lower_left_grids(
-            lst_grid_boundaries=min_max_bounds,
-            n_bins=n_bins
+            lst_grid_boundaries=min_max_bounds, n_bins=n_bins
         )
 
     # +-----------------------------+
@@ -200,17 +183,17 @@ class CornerPlot:
     # +-----------------------------+
 
     def add_lower_left_distributions(
-            self,
-            data: np.ndarray,
-            apply_smoothing: bool = False,
-            hist_color: str = "b",
-            map_colorscheme: plt.cm = plt.cm.jet,
-            ) -> None:
+        self,
+        data: np.ndarray,
+        apply_smoothing: bool = False,
+        hist_color: str = "b",
+        map_colorscheme: plt.cm = plt.cm.jet,
+    ) -> None:
         """"""
 
         assert self._ll_grids
 
-        (N, ntheta) = data.shape
+        N, ntheta = data.shape
         assert ntheta == self._ll_n_theta
 
         for i in range(self._ll_n_theta):
@@ -225,7 +208,7 @@ class CornerPlot:
                         x_boundaries=self._ll_grids["bounds"][i],
                         n_bins=self._ll_grids["bins"][i],
                         apply_smoothing=apply_smoothing,
-                        hist_color=hist_color
+                        hist_color=hist_color,
                     )
 
                 else:
@@ -234,13 +217,11 @@ class CornerPlot:
                         x_data_slice=data[:, i],
                         y_data_slice=data[:, self._ll_jj_data(j)],
                         x_boundaries=self._ll_grids["bounds"][i],
-                        y_boundaries=self._ll_grids["bounds"][
-                            self._ll_jj_data(j)
-                        ],
+                        y_boundaries=self._ll_grids["bounds"][self._ll_jj_data(j)],
                         x_n_bins=self._ll_grids["bins"][i],
                         y_n_bins=self._ll_grids["bins"][self._ll_jj_data(j)],
                         apply_smoothing=apply_smoothing,
-                        map_colorscheme=map_colorscheme
+                        map_colorscheme=map_colorscheme,
                     )
 
     # +-----------------------------+
@@ -249,12 +230,12 @@ class CornerPlot:
     # TODO: extensive cleanup needed here
 
     def add_lower_left_multivariate_gaussian(
-            self,
-            mvg: MultiVariateGaussianMixture,
-            weight: float = 1.0,
-            hist_color: str = "red",
-            contour_colours: str = "red"
-            ) -> None:
+        self,
+        mvg: MultiVariateGaussianMixture,
+        weight: float = 1.0,
+        hist_color: str = "red",
+        contour_colours: str = "red",
+    ) -> None:
         """TODO: clean up this function"""
 
         assert len(mvg.mu[0]) == self._ll_n_theta
@@ -262,7 +243,7 @@ class CornerPlot:
         grids, dv = self._build_centroid_grid(
             boundaries=self._ll_grids["bounds"],
             n_bins=self._ll_grids["bins"],
-            indexing="ij"
+            indexing="ij",
         )
         shape = grids[0].shape
         pxyz = np.column_stack([g.ravel() for g in grids])
@@ -270,7 +251,7 @@ class CornerPlot:
         zz_nd = mvg.compute_onto_grid(pxyz=pxyz)
         zz_nd = np.reshape(zz_nd, shape)
 
-        allaxes = {v for v in range(zz_nd.ndim)}
+        allaxes = set(range(zz_nd.ndim))
 
         for i in range(self._ll_n_theta):
             for j in range(self._ll_n_theta - i):
@@ -281,36 +262,39 @@ class CornerPlot:
                     x, dx = self._build_centroid_array(
                         self._ll_grids["bounds"][i][0],
                         self._ll_grids["bounds"][i][1],
-                        self._ll_grids["bins"][i]
+                        self._ll_grids["bins"][i],
                     )
 
-                    z = np.sum(zz_nd, axis=tuple(allaxes-{i}))
+                    z = np.sum(zz_nd, axis=tuple(allaxes - {i}))
 
                     # normalise
-                    z /= (np.sum(z) * dx)
+                    z /= np.sum(z) * dx
                     z *= weight
 
                     self._axes[key].plot(x, z, color=hist_color)
 
                 else:
-                    ((xx, yy), dv) = self._build_centroid_grid(
-                        boundaries=np.vstack((
-                            self._ll_grids["bounds"][i],
-                            self._ll_grids["bounds"][self._ll_jj_data(j)]
-                        )),
-                        n_bins=np.array([
-                            self._ll_grids["bins"][i],
-                            self._ll_grids["bins"][self._ll_jj_data(j)]
-                        ]),
-                        indexing="ij"
+                    (xx, yy), dv = self._build_centroid_grid(
+                        boundaries=np.vstack(
+                            (
+                                self._ll_grids["bounds"][i],
+                                self._ll_grids["bounds"][self._ll_jj_data(j)],
+                            )
+                        ),
+                        n_bins=np.array(
+                            [
+                                self._ll_grids["bins"][i],
+                                self._ll_grids["bins"][self._ll_jj_data(j)],
+                            ]
+                        ),
+                        indexing="ij",
                     )
                     zz_2d = np.sum(
-                        zz_nd,
-                        axis=tuple(sorted(allaxes-{i, self._ll_jj_data(j)}))
+                        zz_nd, axis=tuple(sorted(allaxes - {i, self._ll_jj_data(j)}))
                     )
 
                     # normalise
-                    zz_2d /= (np.sum(zz_2d) * dv)
+                    zz_2d /= np.sum(zz_2d) * dv
                     zz_2d *= weight
 
                     self.plot_2d_contours(
@@ -318,7 +302,7 @@ class CornerPlot:
                         xx=xx,
                         yy=yy,
                         zz=zz_2d,
-                        colors=contour_colours
+                        colors=contour_colours,
                     )
 
     # +-----------------+
@@ -326,9 +310,9 @@ class CornerPlot:
     # +-----------------+
 
     def add_lower_left_axis_labels(
-            self,
-            list_labels: List[str],
-            ) -> None:
+        self,
+        list_labels: List[str],
+    ) -> None:
 
         assert len(list_labels) == self._ll_n_theta
 
@@ -342,9 +326,9 @@ class CornerPlot:
                 self._axes[key_0j].set_ylabel(label)
 
     def set_lower_left_axis_limits(
-            self,
-            list_limits: List[List[float]],
-            ) -> None:
+        self,
+        list_limits: List[List[float]],
+    ) -> None:
 
         assert len(list_limits) == self._ll_n_theta
 
@@ -354,7 +338,7 @@ class CornerPlot:
             self._axes[key_i0].set_xlim(limits)
 
             if i > 0:
-                key_0j = self.ll_key_formatter(0, i-1)
+                key_0j = self.ll_key_formatter(0, i - 1)
                 self._axes[key_0j].set_ylim(limits)
 
     def set_lower_left_axis_limits_to_grid_bounds(self) -> None:
@@ -366,38 +350,33 @@ class CornerPlot:
     # +-------------------+
 
     def plot_1d_histogram(
-            self,
-            axis,
-            data_slice: np.array,
-            x_boundaries: np.array,
-            n_bins: int,
-            apply_smoothing: bool = False,
-            hist_color: str = "b",
-            ) -> None:
+        self,
+        axis,
+        data_slice: np.array,
+        x_boundaries: np.array,
+        n_bins: int,
+        apply_smoothing: bool = False,
+        hist_color: str = "b",
+    ) -> None:
         """"""
 
         if apply_smoothing:
 
             x_cent, dx = self._build_centroid_array(
-                x_min=x_boundaries[0],
-                x_max=x_boundaries[1],
-                n_bins=n_bins
+                x_min=x_boundaries[0], x_max=x_boundaries[1], n_bins=n_bins
             )
 
             kde = gaussian_kde(data_slice)
             y = kde(x_cent)
 
             # normalise
-            y /= (np.sum(y) * dx)
+            y /= np.sum(y) * dx
 
             axis.plot(x_cent, y, color=hist_color)
 
         else:
             y, x_edges = np.histogram(
-                a=data_slice,
-                bins=n_bins,
-                range=x_boundaries,
-                density=True
+                a=data_slice, bins=n_bins, range=x_boundaries, density=True
             )
 
             axis.stairs(y, x_edges, color=hist_color)
@@ -418,11 +397,11 @@ class CornerPlot:
         return (x_edges[:-1] + dx / 2.0, dx)
 
     def _build_centroid_grid(
-            self,
-            boundaries: np.ndarray,
-            n_bins: np.array,
-            indexing: str,
-            ) -> tuple[tuple[np.ndarray, ...], float]:
+        self,
+        boundaries: np.ndarray,
+        n_bins: np.array,
+        indexing: str,
+    ) -> tuple[tuple[np.ndarray, ...], float]:
         """"""
         centroids = []
         deltas = []
@@ -452,46 +431,46 @@ class CornerPlot:
 
     @staticmethod
     def _construct_2d_histogram_arrays_non_smoothed(
-            x_data_slice: np.array,
-            y_data_slice: np.array,
-            x_boundaries: np.array,
-            y_boundaries: np.array,
-            x_n_bins: int,
-            y_n_bins: int,
-            ) -> np.ndarray:
+        x_data_slice: np.array,
+        y_data_slice: np.array,
+        x_boundaries: np.array,
+        y_boundaries: np.array,
+        x_n_bins: int,
+        y_n_bins: int,
+    ) -> np.ndarray:
 
         H, _, _ = np.histogram2d(
             x=x_data_slice,
             y=y_data_slice,
             bins=[x_n_bins, y_n_bins],
             range=np.vstack((x_boundaries, y_boundaries)),
-            density=True
+            density=True,
         )
 
         shape = H.shape
         h = H.ravel()
-        h[h == 0.] = np.nan  # this is to prevent colormap filling whole axis
+        h[h == 0.0] = np.nan  # this is to prevent colormap filling whole axis
         H = np.reshape(h, shape)
 
         # we rotate through 90 degrees as this will be plotted with imshow
         return np.rot90(H)
 
     def _construct_2d_histogram_arrays_smoothed(
-            self,
-            x_data_slice: np.array,
-            y_data_slice: np.array,
-            x_boundaries: np.array,
-            y_boundaries: np.array,
-            x_n_bins: int,
-            y_n_bins: int,
-            ) -> np.ndarray:
+        self,
+        x_data_slice: np.array,
+        y_data_slice: np.array,
+        x_boundaries: np.array,
+        y_boundaries: np.array,
+        x_n_bins: int,
+        y_n_bins: int,
+    ) -> np.ndarray:
         """"""
         kde = gaussian_kde(np.stack((x_data_slice, y_data_slice)))
 
-        ((xx, yy), dv) = self._build_centroid_grid(
+        (xx, yy), dv = self._build_centroid_grid(
             boundaries=np.vstack((x_boundaries, y_boundaries)),
             n_bins=np.array([x_n_bins, y_n_bins]),
-            indexing="xy"
+            indexing="xy",
         )
 
         # we flip this up down as this will be plotted with imshow
@@ -501,22 +480,22 @@ class CornerPlot:
         H = kde(np.stack((xx.ravel(), yy.ravel()))).reshape(xx.shape)
 
         # normalise to volume integral of 1
-        H /= (np.sum(H) * dv)
+        H /= np.sum(H) * dv
         # this is to prevent colour spill due to negligible numbers
-        H[H < np.nanmax(H)/1000.] = np.nan
+        H[H < np.nanmax(H) / 1000.0] = np.nan
 
         return H
 
     def _construct_2d_histogram_arrays(
-            self,
-            x_data_slice: np.array,
-            y_data_slice: np.array,
-            x_boundaries: np.array,
-            y_boundaries: np.array,
-            x_n_bins: int,
-            y_n_bins: int,
-            apply_smoothing: bool
-            ) -> np.ndarray:
+        self,
+        x_data_slice: np.array,
+        y_data_slice: np.array,
+        x_boundaries: np.array,
+        y_boundaries: np.array,
+        x_n_bins: int,
+        y_n_bins: int,
+        apply_smoothing: bool,
+    ) -> np.ndarray:
         """"""
         return (
             self._construct_2d_histogram_arrays_smoothed(
@@ -525,30 +504,31 @@ class CornerPlot:
                 x_boundaries=x_boundaries,
                 y_boundaries=y_boundaries,
                 x_n_bins=x_n_bins,
-                y_n_bins=y_n_bins
-            ) if apply_smoothing else
-            self._construct_2d_histogram_arrays_non_smoothed(
+                y_n_bins=y_n_bins,
+            )
+            if apply_smoothing
+            else self._construct_2d_histogram_arrays_non_smoothed(
                 x_data_slice=x_data_slice,
                 y_data_slice=y_data_slice,
                 x_boundaries=x_boundaries,
                 y_boundaries=y_boundaries,
                 x_n_bins=x_n_bins,
-                y_n_bins=y_n_bins
+                y_n_bins=y_n_bins,
             )
         )
 
     def plot_2d_histogram_basic(
-            self,
-            axis,
-            x_data_slice: np.array,
-            y_data_slice: np.array,
-            x_boundaries: np.array,
-            y_boundaries: np.array,
-            x_n_bins: int,
-            y_n_bins: int,
-            apply_smoothing: bool = False,
-            map_colorscheme: plt.cm = plt.cm.jet
-            ) -> None:
+        self,
+        axis,
+        x_data_slice: np.array,
+        y_data_slice: np.array,
+        x_boundaries: np.array,
+        y_boundaries: np.array,
+        x_n_bins: int,
+        y_n_bins: int,
+        apply_smoothing: bool = False,
+        map_colorscheme: plt.cm = plt.cm.jet,
+    ) -> None:
         """"""
 
         Z = self._construct_2d_histogram_arrays(
@@ -558,7 +538,7 @@ class CornerPlot:
             y_boundaries=y_boundaries,
             x_n_bins=x_n_bins,
             y_n_bins=y_n_bins,
-            apply_smoothing=apply_smoothing
+            apply_smoothing=apply_smoothing,
         )
 
         axis.imshow(
@@ -570,7 +550,7 @@ class CornerPlot:
                 y_boundaries[1],
             ],
             cmap=map_colorscheme,
-            aspect="auto"
+            aspect="auto",
         )
 
     # +-----------------------------+
@@ -578,12 +558,7 @@ class CornerPlot:
     # +-----------------------------+
 
     def plot_2d_contours(
-            self,
-            axis,
-            xx: np.ndarray,
-            yy: np.ndarray,
-            zz: np.ndarray,
-            colors: str = "red"
-            ) -> None:
+        self, axis, xx: np.ndarray, yy: np.ndarray, zz: np.ndarray, colors: str = "red"
+    ) -> None:
 
         axis.contour(xx, yy, zz, levels=5, colors=colors)

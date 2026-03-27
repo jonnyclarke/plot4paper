@@ -2,6 +2,7 @@
 Python class to automate the generation of beautiful plots at
 academic publication standard.
 """
+
 from plot4paper import load_latex_config
 import logging
 import numpy as np
@@ -12,11 +13,11 @@ from cycler import cycler
 
 from matplotlib.transforms import Bbox
 
-
 logger = logging.getLogger(__name__)
 
 # Compute the Golden Ratio for nicely proportioned plots
 GOLDEN_RATIO_FRACTION: float = 2.0 / (1.0 + np.sqrt(5.0))
+print(GOLDEN_RATIO_FRACTION)
 
 # define the conversion from inch to pt length measurements
 # that is used in latex
@@ -34,6 +35,7 @@ class QualityFigure(object):
         n_columns: int = 1,
         height_fraction: float = GOLDEN_RATIO_FRACTION,
         width_fraction: float = 1.0,
+        use_latex: bool = True,
     ) -> None:
         """Initialise the qualfig (QUALITY-FIGURE) class.
 
@@ -54,6 +56,10 @@ class QualityFigure(object):
                 The fractional width of the plot relative to full page/column
                 width.
                 NOTE: default = 1.000
+
+            use_latex (Optional[bool]):
+                This allows the user to toggle latex usage to avoid external dependency.
+                NOTE: default=True
         """
 
         if key.upper() not in set(latex_config.keys()):
@@ -73,26 +79,20 @@ class QualityFigure(object):
             plot_width = _conf["texlinewidth"]
 
         else:
-            raise ValueError(
-                f"Number of columns must be 1 or 2, not {n_columns}"
-            )
+            raise ValueError(f"Number of columns must be 1 or 2, not {n_columns}")
 
         self._plot_width = plot_width * width_fraction
 
         # we trim the maximum permitted height to add space for a caption
         max_permitted_height = 0.8 * _conf["texheight"]
 
-        self.plot_height = min(
-            max_permitted_height,
-            self._plot_width * height_fraction
-        )
+        self.plot_height = min(max_permitted_height, self._plot_width * height_fraction)
 
         if self.plot_height == max_permitted_height:
             logger.warning(
                 "Plot will exceed max page height. Curtailed to fit page. "
                 "NOTE: maximum height fraction == "
                 f"{max_permitted_height / self._plot_width}"
-
             )
 
         logger.debug(
@@ -149,11 +149,8 @@ class QualityFigure(object):
         rcParams["ytick.labelsize"] = font_size - 1
 
         rcParams["font.family"] = "sans-serif"  # default
-        rcParams["text.usetex"] = True
-        plt.rc(
-            "text.latex",
-            preamble=r"\usepackage{underscore}"
-        )
+        rcParams["text.usetex"] = use_latex
+        plt.rc("text.latex", preamble=r"\usepackage{underscore}")
 
         rcParams["contour.negative_linestyle"] = "solid"
 
@@ -181,11 +178,7 @@ class QualityFigure(object):
                 Axis that should have all borders removed.
         """
 
-        for edge in ["top", "bottom", "left", "right"]:
-            axis.spines[edge].set_visible(False)
-
-        axis.set_xticks([])
-        axis.set_yticks([])
+        axis.set_visible(False)
 
         axis.patch.set_alpha(0.0)
 
@@ -245,38 +238,21 @@ class QualityFigure(object):
         if top is not None:
             rcParams["figure.subplot.top"] = 1 - top
 
-    def save(
-            self,
-            fig,
-            figname: str,
-            dpi: int = 100
-            ) -> None:
+    def save(self, fig, figname: str, dpi: int = 100) -> None:
 
         fig.canvas.draw()
         renderer = fig.canvas.get_renderer()
 
         # Current bbox in inches
-        current_bbox = (
-            fig
-            .get_window_extent(renderer)
-            .transformed(fig.dpi_scale_trans.inverted())
+        current_bbox = fig.get_window_extent(renderer).transformed(
+            fig.dpi_scale_trans.inverted()
         )
 
         # Tight bbox in pixels
         tight_bbox_inches = fig.get_tightbbox(renderer)
 
-        adjusted_bbox = (
-            Bbox
-            .from_extents(
-                current_bbox.x0,
-                tight_bbox_inches.y0,
-                current_bbox.x1,
-                tight_bbox_inches.y1
-            )
+        adjusted_bbox = Bbox.from_extents(
+            current_bbox.x0, tight_bbox_inches.y0, current_bbox.x1, tight_bbox_inches.y1
         )
 
-        fig.savefig(
-            figname,
-            bbox_inches=adjusted_bbox,
-            dpi=dpi
-        )
+        fig.savefig(figname, bbox_inches=adjusted_bbox, dpi=dpi)
