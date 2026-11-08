@@ -59,7 +59,7 @@ class CornerPlot:
         return (self._fig, self._axes)
 
     def generate_top_right_panel(self, dleft: int = 1, ddown: int = 1) -> plt.axis:
-        """"""
+        """TODO: errors when values take us out of bounds"""
         return plt.subplot(self._gs[:ddown, -dleft:])
 
     # +------------+
