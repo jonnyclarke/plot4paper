@@ -1,0 +1,258 @@
+"""
+Python class to automate the generation of beautiful plots at
+academic publication standard.
+"""
+
+from plot4paper import load_latex_config
+import logging
+import numpy as np
+from typing import Optional
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
+from cycler import cycler
+
+from matplotlib.transforms import Bbox
+
+logger = logging.getLogger(__name__)
+
+# Compute the Golden Ratio for nicely proportioned plots
+GOLDEN_RATIO_FRACTION: float = 2.0 / (1.0 + np.sqrt(5.0))
+print(GOLDEN_RATIO_FRACTION)
+
+# define the conversion from inch to pt length measurements
+# that is used in latex
+INCHES_TO_POINTS_CONVERSION: float = 72.27
+
+latex_config = load_latex_config()
+
+
+class QualityFigure(object):
+    """Class to automate basic formatting of plots to ensure consistency."""
+
+    def __init__(
+        self,
+        key: str = "default",
+        n_columns: int = 1,
+        height_fraction: float = GOLDEN_RATIO_FRACTION,
+        width_fraction: float = 1.0,
+        use_latex: bool = True,
+    ) -> None:
+        """Initialise the qualfig (QUALITY-FIGURE) class.
+
+        Args
+            key (str):
+                The publication template name.
+                NOTE: default = "default"
+
+            n_columns (int):
+                Number of columns the plot should span.
+                NOTE: default = 1
+
+            height_fraction (float):
+                The fractional height of the plot relative to the width.
+                NOTE: default = 1.618 (The Golden Ratio)
+
+            width_fraction (Optional[float]):
+                The fractional width of the plot relative to full page/column
+                width.
+                NOTE: default = 1.000
+
+            use_latex (Optional[bool]):
+                This allows the user to toggle latex usage to avoid external dependency.
+                NOTE: default=True
+        """
+
+        if key.upper() not in set(latex_config.keys()):
+            raise KeyError(
+                f"Selected key '{key}' is not understood. "
+                f"Available keys are: {set(latex_config.keys())}"
+            )
+
+        _conf = latex_config[key.upper()]
+
+        self._save_suffix = f"{_conf['savesuf']}.pdf"
+
+        if n_columns == 1:
+            plot_width = _conf["texcolumnwidth"]
+
+        elif n_columns == 2:
+            plot_width = _conf["texlinewidth"]
+
+        else:
+            raise ValueError(f"Number of columns must be 1 or 2, not {n_columns}")
+
+        self._plot_width = plot_width * width_fraction
+
+        # we trim the maximum permitted height to add space for a caption
+        max_permitted_height = 0.8 * _conf["texheight"]
+
+        self.plot_height = min(max_permitted_height, self._plot_width * height_fraction)
+
+        if self.plot_height == max_permitted_height:
+            logger.warning(
+                "Plot will exceed max page height. Curtailed to fit page. "
+                "NOTE: maximum height fraction == "
+                f"{max_permitted_height / self._plot_width}"
+            )
+
+        logger.debug(
+            "Figure size (inches): "
+            f"{self._plot_width / INCHES_TO_POINTS_CONVERSION} X "
+            f"{self.plot_height / INCHES_TO_POINTS_CONVERSION}"
+        )
+
+        rcParams["figure.subplot.top"] = 0.95
+
+        rcParams["figure.subplot.bottom"] = 0.2 if n_columns == 1 else 0.1
+        rcParams["figure.subplot.left"] = 0.16 if n_columns == 1 else 0.08
+        rcParams["figure.subplot.right"] = 0.84 if n_columns == 1 else 0.92
+
+        rcParams["figure.figsize"] = (
+            self._plot_width / INCHES_TO_POINTS_CONVERSION,
+            self.plot_height / INCHES_TO_POINTS_CONVERSION,
+        )
+
+        # configure text and line widths
+        font_size = 8
+        linewidth = 0.5
+
+        rcParams["font.size"] = font_size
+        rcParams["axes.labelsize"] = font_size
+        rcParams["axes.titlesize"] = font_size
+
+        rcParams["xtick.major.width"] = linewidth - 0.1
+        rcParams["xtick.minor.width"] = linewidth - 0.1
+        rcParams["ytick.major.width"] = linewidth - 0.1
+        rcParams["ytick.minor.width"] = linewidth - 0.1
+        rcParams["lines.linewidth"] = linewidth
+        rcParams["grid.linewidth"] = linewidth
+
+        rcParams["xtick.minor.visible"] = True
+        rcParams["ytick.minor.visible"] = True
+
+        rcParams["xtick.bottom"] = True
+        rcParams["xtick.top"] = True
+
+        rcParams["ytick.left"] = True
+        rcParams["ytick.right"] = True
+
+        rcParams["xtick.direction"] = "in"
+        rcParams["ytick.direction"] = "in"
+
+        rcParams["errorbar.capsize"] = 4
+
+        rcParams["legend.fontsize"] = font_size
+        rcParams["legend.framealpha"] = 0.0
+        rcParams["legend.edgecolor"] = "w"
+
+        rcParams["xtick.labelsize"] = font_size - 1
+        rcParams["ytick.labelsize"] = font_size - 1
+
+        rcParams["font.family"] = "sans-serif"  # default
+        rcParams["text.usetex"] = use_latex
+        plt.rc("text.latex", preamble=r"\usepackage{underscore}")
+
+        rcParams["contour.negative_linestyle"] = "solid"
+
+        # determine the new cycling order
+        rcParams["axes.prop_cycle"] = cycler(color="brckmgy")
+
+    def is_colorbar_axis(self, axis: plt.Axes) -> None:
+        """Function to tell script an axis is a colourbar axis.
+        Reconfigures the tick settings.
+
+        Args:
+            axis (plt.Axes):
+                Axis that should be treated as a colourbar axis.
+        """
+
+        axis.minorticks_off()
+        axis.tick_params(which="major", direction="out")
+
+    def remove_axis_border(self, axis) -> None:
+        """Function to hide all borders and ticks of axes used to generate
+        custom labels over multirow/col plots.
+
+        Args:
+            axis (plt.Axes):
+                Axis that should have all borders removed.
+        """
+
+        axis.set_visible(False)
+
+        axis.patch.set_alpha(0.0)
+
+    def set_label_spaces(
+        self,
+        side: Optional[float] = None,
+        bottom: Optional[float] = None,
+        top: Optional[float] = None,
+        left: Optional[float] = None,
+        right: Optional[float] = None,
+    ) -> None:
+        """Function to customise the plot whitespace borders to allow more
+        elaborate axes labels or titles.
+        A value of 0 means no space will be reserved along that border of
+        the figure.
+        A value of 0.05 corresponds to 5% of the figure will be whitespace gap
+        along that gap.
+
+        Args:
+            side (Optional[float]):
+                Fractional width to reserve at the side for white-space.
+
+            bottom (Optional[float]):
+                Fractional width to reserve at the bottom for white-space.
+
+            top (Optional[float]):
+                Fractional width to reserve at the top for white-space.
+
+            left (Optional[float]):
+                Fractional width to reserve at the left for white-space.
+
+            right (Optional[float]):
+                Fractional width to reserve at the right for white-space.
+        """
+
+        if side is not None:
+            if left is not None or right is not None:
+                logger.warning(
+                    "You have set both 'side' and one of 'left'/'right' "
+                    "Using 'side' configuration only"
+                )
+
+            rcParams["figure.subplot.left"] = side
+            rcParams["figure.subplot.right"] = 1 - side
+
+        else:
+
+            if left is not None:
+                rcParams["figure.subplot.left"] = left
+
+            if right is not None:
+                rcParams["figure.subplot.right"] = 1 - right
+
+        if bottom is not None:
+            rcParams["figure.subplot.bottom"] = bottom
+
+        if top is not None:
+            rcParams["figure.subplot.top"] = 1 - top
+
+    def save(self, fig, figname: str, dpi: int = 100) -> None:
+
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+
+        # Current bbox in inches
+        current_bbox = fig.get_window_extent(renderer).transformed(
+            fig.dpi_scale_trans.inverted()
+        )
+
+        # Tight bbox in pixels
+        tight_bbox_inches = fig.get_tightbbox(renderer)
+
+        adjusted_bbox = Bbox.from_extents(
+            current_bbox.x0, tight_bbox_inches.y0, current_bbox.x1, tight_bbox_inches.y1
+        )
+
+        fig.savefig(figname, bbox_inches=adjusted_bbox, dpi=dpi)
