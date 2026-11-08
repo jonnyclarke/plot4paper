@@ -3,7 +3,7 @@ Python class to automate the generation of beautiful plots at
 academic publication standard.
 """
 
-from plot4paper import load_latex_config
+from plot4paper import PAPER_METRICS
 import logging
 import numpy as np
 from typing import Optional
@@ -17,13 +17,10 @@ logger = logging.getLogger(__name__)
 
 # Compute the Golden Ratio for nicely proportioned plots
 GOLDEN_RATIO_FRACTION: float = 2.0 / (1.0 + np.sqrt(5.0))
-print(GOLDEN_RATIO_FRACTION)
 
 # define the conversion from inch to pt length measurements
 # that is used in latex
 INCHES_TO_POINTS_CONVERSION: float = 72.27
-
-latex_config = load_latex_config()
 
 
 class QualityFigure(object):
@@ -62,13 +59,13 @@ class QualityFigure(object):
                 NOTE: default=True
         """
 
-        if key.upper() not in set(latex_config.keys()):
+        if key.upper() not in set(PAPER_METRICS.keys()):
             raise KeyError(
                 f"Selected key '{key}' is not understood. "
-                f"Available keys are: {set(latex_config.keys())}"
+                f"Available keys are: {set(PAPER_METRICS.keys())}"
             )
 
-        _conf = latex_config[key.upper()]
+        _conf = PAPER_METRICS[key.upper()]
 
         self._save_suffix = f"{_conf['savesuf']}.pdf"
 

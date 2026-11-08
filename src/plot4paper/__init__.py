@@ -1,9 +1,40 @@
-from importlib.resources import files
-import yaml
+from typing import Dict
 
-
-def load_latex_config():
-    config_path = files("plot4paper.data") / "latex.yaml"
-
-    with open(config_path, "r") as stream:
-        return yaml.load(stream, Loader=yaml.FullLoader)
+PAPER_METRICS: Dict = {
+    "DEFAULT": {
+        "texcolumnwidth": 450.0,
+        "texlinewidth": 450.0,
+        "texheight": 620.0,
+        "savesuf": "",
+    },
+    "MNRAS": {
+        "texcolumnwidth": 240.0,
+        "texlinewidth": 504.0,
+        "texheight": 682.0,
+        "savesuf": "_MNRAS",
+    },
+    "AA": {
+        "texcolumnwidth": 256.0748,
+        "texlinewidth": 523.5307,
+        "texheight": 705.0000,
+        "savesuf": "_AandA",
+    },
+    "APJ": {
+        "texcolumnwidth": 245.26653,
+        "texlinewidth": 513.11743,
+        "texheight": 675.83984,
+        "savesuf": "_ApJ",
+    },
+    "IAU": {
+        "texcolumnwidth": 384.0,
+        "texlinewidth": 384.0,
+        "texheight": 595.5,
+        "savesuf": "_IAU",
+    },
+    "LMU": {
+        "texcolumnwidth": 460.72124,
+        "texlinewidth": 460.72124,
+        "texheight": 621.00000,
+        "savesuf": "_LMU",
+    },
+}
